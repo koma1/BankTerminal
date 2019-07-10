@@ -8,6 +8,8 @@ import pw.komarov.terminals.exceptions.NoFundsException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import lombok.NonNull;
+
 public class BankTerminal {
     private Map<Integer,Integer> balance = new HashMap<>();
 
@@ -15,10 +17,7 @@ public class BankTerminal {
         money.forEach(this::pushMoney);
     }
 
-    public void pushMoney(/*for EE - @NonNull*/ Integer banknoteNominal, int count) {
-        if(banknoteNominal == null)
-            banknoteNominal = 0;
-
+    public void pushMoney(@NonNull Integer banknoteNominal, int count) {
         if((banknoteNominal <= 0) || (count <= 0))
             throw new IllegalArgumentException("Banknote nominal or number of notes can't be less zero!");
 
