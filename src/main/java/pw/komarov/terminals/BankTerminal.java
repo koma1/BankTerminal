@@ -1,5 +1,6 @@
 package pw.komarov.terminals;
 
+import lombok.NonNull;
 import pw.komarov.terminals.exceptions.AmountNotMultipleException;
 import pw.komarov.terminals.exceptions.BankTerminalException;
 import pw.komarov.terminals.exceptions.NoExchangeException;
@@ -8,37 +9,33 @@ import pw.komarov.terminals.exceptions.NoFundsException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import lombok.NonNull;
-
 public class BankTerminal {
-    private Map<Integer,Integer> balance = new HashMap<>();
+    private final Map<Integer,Integer> balance = new HashMap<>();
 
-    public void pushMoney(Map<Integer, Integer> money) {
+    public synchronized void pushMoney(Map<Integer, Integer> money) {
         money.forEach(this::pushMoney);
     }
 
-    public void pushMoney(@NonNull Integer banknoteNominal, int count) {
+    public synchronized void pushMoney(@NonNull Integer banknoteNominal, int count) {
         if((banknoteNominal <= 0) || (count <= 0))
             throw new IllegalArgumentException("Banknote nominal or number of notes can't be less zero!");
 
-        balance.put(banknoteNominal, balance.getOrDefault(banknoteNominal, 0) + count);
+            balance.put(banknoteNominal, balance.getOrDefault(banknoteNominal, 0) + count);
     }
 
-    public int getAvailableTotalAmount() {
+    public synchronized int getAvailableTotalAmount() {
         AtomicInteger result = new AtomicInteger();
+
         balance.forEach((nominal, count) -> result.addAndGet(nominal * count));
+
         return result.get();
     }
 
-    public Integer getBanknotesCount(int nominal) {
+    public synchronized Integer getBanknotesCount(int nominal) {
         return balance.getOrDefault(nominal, null);
     }
 
-    private Integer getMinNote() {
-        return balance.keySet().stream().min(Integer::compareTo).orElse(-1);
-    }
-
-    public HashMap<Integer,Integer> requestAmount(int amount) throws NoFundsException, AmountNotMultipleException, NoExchangeException {
+    public synchronized HashMap<Integer,Integer> requestAmount(int amount) throws NoFundsException, AmountNotMultipleException, NoExchangeException {
         int min = getMinNote();
 
         if(min < 1)
@@ -55,6 +52,12 @@ public class BankTerminal {
         result.forEach((nm, cnt) -> balance.put(nm, balance.getOrDefault(nm, 0) - cnt));
 
         return result;
+    }
+
+    private Integer getMinNote() {
+        synchronized(balance) {
+            return balance.keySet().stream().min(Integer::compareTo).orElse(-1);
+        }
     }
 
     private HashMap<Integer,Integer> requestExchange(int amount) {
